@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pharmacovigilance Case Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#EEF2F0;
+    --surface:#FFFFFF;
+    --line:#DEE4DF;
+    --ink:#233240;
+    --ink-soft:#5C6B70;
+    --navy:#243A4D;
+    --navy2:#365D6B;
+    --teal:#4F8B85;
+    --teal-deep:#2E6360;
+    --amber:#C99A44;
+    --brick:#B5695F;
+    --sage:#7C9E77;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --disp: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:0 0 56px;}
+
+  /* ---------------- Header ---------------- */
+  header{
+    background:linear-gradient(120deg,var(--navy) 0%, var(--navy2) 55%, var(--teal) 100%);
+    padding:34px 32px 30px;
+    border-radius:0 0 18px 18px;
+    margin-bottom:22px;
+    box-shadow:0 6px 18px rgba(36,58,77,0.18);
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.14em;
+    color:#CFE3DF;
+    text-transform:uppercase;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:#CFE3DF;
+    display:inline-block;
+  }
+  h1{
+    font-family:var(--disp);
+    font-weight:700;
+    font-size:clamp(26px,3.4vw,36px);
+    margin:0 0 12px;
+    color:#FFFFFF;
+    letter-spacing:-0.01em;
+  }
+  .subtitle-bullets{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0;
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:#E4EEEC;
+    letter-spacing:0.02em;
+  }
+  .subtitle-bullets span.item{padding:0 14px 0 0;}
+  .subtitle-bullets span.item::before{
+    content:"\2022";
+    margin-right:10px;
+    color:#9FC4BE;
+  }
+
+  .content{padding:0 32px;}
+
+  /* ---------------- KPI row ---------------- */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:12px;
+    margin-bottom:22px;
+  }
+  .kpi{
+    border-radius:12px;
+    padding:16px 14px;
+    position:relative;
+    overflow:hidden;
+    color:#fff;
+    box-shadow:0 3px 10px rgba(36,58,77,0.10);
+  }
+  .kpi.c1{background:linear-gradient(135deg,#2E6360,#4F8B85);}
+  .kpi.c2{background:linear-gradient(135deg,#9A4F45,#C1665C);}
+  .kpi.c3{background:linear-gradient(135deg,#8A5A2A,#C99A44);}
+  .kpi.c4{background:linear-gradient(135deg,#2E5266,#4F7C93);}
+  .kpi.c5{background:linear-gradient(135deg,#243A4D,#365D6B);}
+  .kpi .val{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:26px;
+    line-height:1;
+  }
+  .kpi.text .val{font-size:18px;}
+  .kpi .lab{
+    margin-top:8px;
+    font-size:11.5px;
+    color:rgba(255,255,255,0.85);
+    letter-spacing:0.01em;
+  }
+
+  /* ---------------- Body: sidebar + chart area ---------------- */
+  .body-grid{
+    display:grid;
+    grid-template-columns:230px 1fr;
+    gap:18px;
+    align-items:start;
+  }
+
+  .sidebar{
+    background:linear-gradient(180deg,#E4EEEC 0%, #DCE7EA 100%);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 16px;
+    position:sticky;
+    top:16px;
+  }
+  .sidebar h2{
+    font-family:var(--disp);
+    font-size:14px;
+    font-weight:600;
+    color:var(--navy);
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .filter-group{margin-bottom:16px;}
+  .filter-group .flabel{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    display:block;
+    margin-bottom:7px;
+  }
+  .pills{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{
+    font-family:var(--sans);
+    font-size:12px;
+    padding:5px 11px;
+    border-radius:999px;
+    border:1px solid #C7D6D2;
+    background:#FBFDFC;
+    color:var(--ink-soft);
+    cursor:pointer;
+    user-select:none;
+    transition:all .12s ease;
+  }
+  .pill:hover{border-color:var(--teal);color:var(--ink);}
+  .pill.active{
+    background:linear-gradient(120deg,var(--navy),var(--teal));
+    border-color:transparent;
+    color:#fff;
+  }
+  .reset-btn{
+    width:100%;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    color:var(--brick);
+    background:#fff;
+    border:1px solid var(--brick);
+    border-radius:8px;
+    padding:8px 12px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .reset-btn:hover{background:var(--brick);color:#fff;}
+
+  /* ---------------- Charts ---------------- */
+  .charts{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:0 18px 10px;
+    overflow:hidden;
+  }
+  .card .card-head{
+    margin:0 -18px 12px;
+    padding:12px 18px;
+    background:linear-gradient(120deg,#EDF3F1,#E1ECEA);
+    border-bottom:1px solid var(--line);
+  }
+  .card h3{
+    font-family:var(--disp);
+    font-size:14.5px;
+    font-weight:600;
+    color:var(--navy);
+    margin:0 0 3px;
+  }
+  .card .count-tag{
+    font-family:var(--mono);
+    font-size:10.5px;
+    color:var(--ink-soft);
+  }
+  .chart-box{position:relative;height:230px;}
+  .chart-box.tall{height:280px;}
+
+
+  /* SOC Table */
+  .soc-table-box{
+    max-height:280px;
+    overflow-y:auto;
+  }
+  .soc-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+  }
+  .soc-table thead{
+    position:sticky;
+    top:0;
+    background:linear-gradient(120deg,#EDF3F1,#E1ECEA);
+    z-index:1;
+  }
+  .soc-table th{
+    text-align:left;
+    padding:8px;
+    font-family:var(--disp);
+    font-weight:600;
+    color:var(--navy);
+    border-bottom:1px solid var(--line);
+    font-size:11px;
+  }
+  .soc-table td{
+    padding:7px 8px;
+    border-bottom:1px solid #F0F4F2;
+    color:var(--ink-soft);
+  }
+  .soc-table tr:hover{background:#F8FAFA;}
+
+    @media (max-width:900px){
+    .body-grid{grid-template-columns:1fr;}
+    .sidebar{position:static;}
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .charts{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Simulated ICSR Case Series &mdash; Portfolio Project</div>
+    <h1>Pharmacovigilance Case Dashboard</h1>
+    <div class="subtitle-bullets">
+      <span class="item">Case Processing</span>
+      <span class="item">Safety Assessment</span>
+      <span class="item">Reporting</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <div class="kpis">
+      <div class="kpi c1"><div class="val" id="kpiTotal">30</div><div class="lab">Total Cases</div></div>
+      <div class="kpi c2"><div class="val" id="kpiSerious">22</div><div class="lab">Serious Cases</div></div>
+      <div class="kpi c3"><div class="val" id="kpiExpedited">16</div><div class="lab">Expedited Reports</div></div>
+      <div class="kpi c4"><div class="val" id="kpiPeriodic">14</div><div class="lab">Periodic Reports</div></div>
+      <div class="kpi c5 text"><div class="val" id="kpiCausality">Probable</div><div class="lab">Most Common Causality</div></div>
+    </div>
+
+    <div class="body-grid">
+
+      <aside class="sidebar">
+        <h2>Filters</h2>
+
+        <div class="filter-group">
+          <span class="flabel">Seriousness</span>
+          <div class="pills" data-filter="serious">
+            <span class="pill" data-value="Yes">Serious</span>
+            <span class="pill" data-value="No">Non-serious</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="flabel">Case Type</span>
+          <div class="pills" data-filter="type">
+            <span class="pill" data-value="Initial">Initial</span>
+            <span class="pill" data-value="Follow-up">Follow-up</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="flabel">Region</span>
+          <div class="pills" data-filter="region">
+            <span class="pill" data-value="India">India</span>
+            <span class="pill" data-value="USA">USA</span>
+            <span class="pill" data-value="EU">EU</span>
+            <span class="pill" data-value="UK">UK</span>
+            <span class="pill" data-value="Canada">Canada</span>
+            <span class="pill" data-value="Australia">Australia</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="flabel">Case Status</span>
+          <div class="pills" data-filter="status">
+            <span class="pill" data-value="Closed">Closed</span>
+            <span class="pill" data-value="Pending Follow-up">Pending Follow-up</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <span class="flabel">Sex</span>
+          <div class="pills" data-filter="sex">
+            <span class="pill" data-value="M">Male</span>
+            <span class="pill" data-value="F">Female</span>
+          </div>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">Reset filters</button>
+      </aside>
+
+      <div class="charts">
+        <div class="card">
+          <div class="card-head">
+            <h3>Adverse Events by System Organ Class</h3>
+            <span class="count-tag" id="socTag">10 SOC categories</span>
+          </div>
+          <div class="soc-table-box">
+            <table class="soc-table">
+              <thead>
+                <tr><th>System Organ Class</th><th style="width:60px;text-align:right;">Count</th></tr>
+              </thead>
+              <tbody id="socTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Cases by Reporting Authority</h3>
+            <span class="count-tag" id="authTag">10 authorities</span>
+          </div>
+          <div class="chart-box tall"><canvas id="authChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Time to Onset Distribution</h3>
+            <span class="count-tag" id="ttoTag">across all AEs</span>
+          </div>
+          <div class="chart-box"><canvas id="ttoChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Cases by Suspect Drug Class</h3>
+            <span class="count-tag" id="drugTag">13 classes</span>
+          </div>
+          <div class="chart-box"><canvas id="drugChart"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------- Case-level data (one row per case) ----------------
+const cases = [
+  {id:"PV-001",type:"Initial",serious:"No",reportingType:"Periodic",authority:"CDSCO",region:"India",status:"Closed",sex:"M",drugClass:"Antihypertensive",causality:"Probable"},
+  {id:"PV-002",type:"Initial",serious:"No",reportingType:"Periodic",authority:"CDSCO",region:"India",status:"Closed",sex:"F",drugClass:"NSAID",causality:"Possible"},
+  {id:"PV-003",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"CDSCO",region:"India",status:"Pending Follow-up",sex:"M",drugClass:"NSAID",causality:"Possible"},
+  {id:"PV-004",type:"Follow-up",serious:"No",reportingType:"Periodic",authority:"CDSCO",region:"India",status:"Closed",sex:"M",drugClass:"Lipid-lowering",causality:"Probable"},
+  {id:"PV-005",type:"Initial",serious:"Yes",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Pending Follow-up",sex:"M",drugClass:"Anticoagulant",causality:"Probable"},
+  {id:"PV-006",type:"Follow-up",serious:"Yes",reportingType:"Expedited",authority:"Health Canada",region:"Canada",status:"Closed",sex:"F",drugClass:"Antidepressant",causality:"Probable"},
+  {id:"PV-007",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"TGA",region:"Australia",status:"Pending Follow-up",sex:"M",drugClass:"Antihypertensive",causality:"Probable"},
+  {id:"PV-008",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"BfArM",region:"EU",status:"Pending Follow-up",sex:"F",drugClass:"Antimetabolite",causality:"Probable"},
+  {id:"PV-009",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"ANSM",region:"EU",status:"Pending Follow-up",sex:"M",drugClass:"Antibiotic",causality:"Possible"},
+  {id:"PV-010",type:"Initial",serious:"Yes",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Closed",sex:"F",drugClass:"Anticoagulant",causality:"Probable"},
+  {id:"PV-011",type:"Initial",serious:"No",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Closed",sex:"M",drugClass:"Antidiabetic",causality:"Possible"},
+  {id:"PV-012",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"BfArM",region:"EU",status:"Pending Follow-up",sex:"F",drugClass:"Anticonvulsant",causality:"Probable"},
+  {id:"PV-013",type:"Follow-up",serious:"Yes",reportingType:"Expedited",authority:"MHRA",region:"UK",status:"Closed",sex:"M",drugClass:"Antihypertensive",causality:"Possible"},
+  {id:"PV-014",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"FDA",region:"USA",status:"Pending Follow-up",sex:"F",drugClass:"Antidiabetic",causality:"Probable"},
+  {id:"PV-015",type:"Initial",serious:"No",reportingType:"Periodic",authority:"AEMPS",region:"EU",status:"Closed",sex:"F",drugClass:"Antibiotic",causality:"Probable"},
+  {id:"PV-016",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"AIFA",region:"EU",status:"Pending Follow-up",sex:"M",drugClass:"Proton pump inhibitor",causality:"Probable"},
+  {id:"PV-017",type:"Initial",serious:"Yes",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Pending Follow-up",sex:"M",drugClass:"Antibiotic",causality:"Probable"},
+  {id:"PV-018",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"ANSM",region:"EU",status:"Pending Follow-up",sex:"F",drugClass:"Antibiotic",causality:"Probable"},
+  {id:"PV-019",type:"Initial",serious:"Yes",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Pending Follow-up",sex:"F",drugClass:"Antidepressant",causality:"Possible"},
+  {id:"PV-020",type:"Initial",serious:"No",reportingType:"Periodic",authority:"MHRA",region:"UK",status:"Pending Follow-up",sex:"M",drugClass:"Antimetabolite",causality:"Possible"},
+  {id:"PV-021",type:"Initial",serious:"Yes",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Closed",sex:"F",drugClass:"Antiplatelet",causality:"Probable"},
+  {id:"PV-022",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"BfArM",region:"EU",status:"Pending Follow-up",sex:"F",drugClass:"Anticoagulant",causality:"Possible"},
+  {id:"PV-023",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"ANSM",region:"EU",status:"Pending Follow-up",sex:"M",drugClass:"Antigout",causality:"Probable"},
+  {id:"PV-024",type:"Initial",serious:"Yes",reportingType:"Periodic",authority:"FDA",region:"USA",status:"Pending Follow-up",sex:"F",drugClass:"Antibiotic",causality:"Probable"},
+  {id:"PV-025",type:"Initial",serious:"No",reportingType:"Periodic",authority:"CDSCO",region:"India",status:"Closed",sex:"F",drugClass:"Antimigraine",causality:"Possible"},
+  {id:"PV-026",type:"Follow-up",serious:"Yes",reportingType:"Expedited",authority:"MHRA",region:"UK",status:"Closed",sex:"M",drugClass:"Antidiabetic",causality:"Probable"},
+  {id:"PV-027",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"Health Canada",region:"Canada",status:"Pending Follow-up",sex:"F",drugClass:"Antibiotic",causality:"Probable"},
+  {id:"PV-028",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"BfArM",region:"EU",status:"Pending Follow-up",sex:"F",drugClass:"Anticonvulsant",causality:"Probable"},
+  {id:"PV-029",type:"Initial",serious:"No",reportingType:"Periodic",authority:"TGA",region:"Australia",status:"Closed",sex:"F",drugClass:"Anticonvulsant",causality:"Probable"},
+  {id:"PV-030",type:"Initial",serious:"Yes",reportingType:"Expedited",authority:"MEB",region:"EU",status:"Pending Follow-up",sex:"M",drugClass:"Lipid-lowering",causality:"Probable"},
+];
+
+// ---------------- Event-level data (one row per adverse event; a case can have several) ----------------
+const events = [
+  {id:"PV-001",soc:"General disorders and administration site conditions",tto:7},
+  {id:"PV-002",soc:"Gastrointestinal disorders",tto:2},
+  {id:"PV-002",soc:"Gastrointestinal disorders",tto:2},
+  {id:"PV-003",soc:"Gastrointestinal disorders",tto:4},
+  {id:"PV-003",soc:"Nervous system disorders",tto:4},
+  {id:"PV-003",soc:"Gastrointestinal disorders",tto:4},
+  {id:"PV-004",soc:"General disorders and administration site conditions",tto:7},
+  {id:"PV-004",soc:"Musculoskeletal and connective tissue disorders",tto:7},
+  {id:"PV-005",soc:"Gastrointestinal disorders",tto:19},
+  {id:"PV-006",soc:"Immune system disorders",tto:10},
+  {id:"PV-007",soc:"Immune system disorders",tto:14},
+  {id:"PV-008",soc:"Blood and lymphatic system disorders",tto:46},
+  {id:"PV-009",soc:"Skin and subcutaneous tissue disorders",tto:7},
+  {id:"PV-010",soc:"Nervous system disorders",tto:23},
+  {id:"PV-011",soc:"Metabolism and nutrition disorders",tto:26},
+  {id:"PV-012",soc:"Blood and lymphatic system disorders",tto:16},
+  {id:"PV-013",soc:"Metabolism and nutrition disorders",tto:11},
+  {id:"PV-014",soc:"Hepatobiliary disorders",tto:16},
+  {id:"PV-015",soc:"Skin and subcutaneous tissue disorders",tto:8},
+  {id:"PV-016",soc:"Renal and urinary disorders",tto:14},
+  {id:"PV-017",soc:"Musculoskeletal and connective tissue disorders",tto:7},
+  {id:"PV-018",soc:"Hepatobiliary disorders",tto:9},
+  {id:"PV-019",soc:"Nervous system disorders",tto:61},
+  {id:"PV-020",soc:"Hepatobiliary disorders",tto:33},
+  {id:"PV-021",soc:"Blood and lymphatic system disorders",tto:6},
+  {id:"PV-022",soc:"Gastrointestinal disorders",tto:9},
+  {id:"PV-023",soc:"Skin and subcutaneous tissue disorders",tto:13},
+  {id:"PV-024",soc:"Renal and urinary disorders",tto:7},
+  {id:"PV-025",soc:"Gastrointestinal disorders",tto:0},
+  {id:"PV-025",soc:"Nervous system disorders",tto:0},
+  {id:"PV-026",soc:"Metabolism and nutrition disorders",tto:19},
+  {id:"PV-027",soc:"Hepatobiliary disorders",tto:6},
+  {id:"PV-028",soc:"Immune system disorders",tto:5},
+  {id:"PV-029",soc:"Metabolism and nutrition disorders",tto:11},
+  {id:"PV-030",soc:"Musculoskeletal and connective tissue disorders",tto:17},
+];
+
+// ---------------- Filter state ----------------
+const activeFilters = {serious:new Set(),type:new Set(),region:new Set(),status:new Set(),sex:new Set()};
+
+document.querySelectorAll(".pill").forEach(pill=>{
+  pill.addEventListener("click",()=>{
+    const group = pill.parentElement.dataset.filter;
+    const val = pill.dataset.value;
+    if(activeFilters[group].has(val)){
+      activeFilters[group].delete(val);
+      pill.classList.remove("active");
+    }else{
+      activeFilters[group].add(val);
+      pill.classList.add("active");
+    }
+    render();
+  });
+});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  Object.values(activeFilters).forEach(s=>s.clear());
+  document.querySelectorAll(".pill").forEach(p=>p.classList.remove("active"));
+  render();
+});
+
+function matches(c){
+  return Object.entries(activeFilters).every(([key,set])=>{
+    if(set.size===0) return true;
+    return set.has(c[key]);
+  });
+}
+
+const COLORS = {teal:"#4F8B85",navy:"#243A4D",amber:"#C99A44",brick:"#B5695F",sage:"#7C9E77"};
+const chartFont = {family:"IBM Plex Sans",size:11};
+Chart.defaults.font.family = "IBM Plex Sans";
+Chart.defaults.color = "#5C6B70";
+
+let authChart, ttoChart, drugChart;
+
+function sortedEntries(obj){
+  return Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+}
+
+function gradientFor(ctx, horizontal){
+  const area = ctx.chart.chartArea;
+  if(!area) return COLORS.teal;
+  const g = horizontal
+    ? ctx.chart.ctx.createLinearGradient(area.left,0,area.right,0)
+    : ctx.chart.ctx.createLinearGradient(0,area.bottom,0,area.top);
+  g.addColorStop(0, "#2E6360");
+  g.addColorStop(1, "#6FA9A3");
+  return g;
+}
+
+function makeBar(canvasId, labels, data, horizontal){
+  const ctx = document.getElementById(canvasId);
+  return new Chart(ctx, {
+    type:"bar",
+    data:{labels, datasets:[{
+      data,
+      backgroundColor: (c)=>gradientFor(c, horizontal),
+      borderRadius:3,
+      barThickness: horizontal?14:undefined,
+      maxBarThickness:26
+    }]},
+    options:{
+      indexAxis:horizontal?"y":"x",
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:"#EEF0EC", display:!horizontal}, ticks:{font:chartFont}},
+        y:{grid:{color:"#EEF0EC", display:horizontal}, ticks:{font:{family:"IBM Plex Sans", size: horizontal?10.5:11}}}
+      }
+    }
+  });
+}
+
+function render(){
+  const filteredCases = cases.filter(matches);
+  const ids = new Set(filteredCases.map(c=>c.id));
+  const filteredEvents = events.filter(e=>ids.has(e.id));
+
+  document.getElementById("kpiTotal").textContent = filteredCases.length;
+  document.getElementById("kpiSerious").textContent = filteredCases.filter(c=>c.serious==="Yes").length;
+  document.getElementById("kpiExpedited").textContent = filteredCases.filter(c=>c.reportingType==="Expedited").length;
+  document.getElementById("kpiPeriodic").textContent = filteredCases.filter(c=>c.reportingType==="Periodic").length;
+
+  const causalityCounts = {};
+  filteredCases.forEach(c=>{causalityCounts[c.causality]=(causalityCounts[c.causality]||0)+1;});
+  const topCausality = sortedEntries(causalityCounts)[0];
+  document.getElementById("kpiCausality").textContent = topCausality ? topCausality[0] : "\u2014";
+
+  const socCounts = {};
+  filteredEvents.forEach(e=>{socCounts[e.soc]=(socCounts[e.soc]||0)+1;});
+  const socSorted = sortedEntries(socCounts);
+  document.getElementById("socTag").textContent = socSorted.length + " SOC categories \u00b7 " + filteredEvents.length + " events";
+  const tbody = document.getElementById("socTableBody");
+  tbody.innerHTML = socSorted.map(([soc, count])=>
+    `<tr><td>${soc}</td><td style="text-align:right;font-weight:600;color:var(--navy);">${count}</td></tr>`
+  ).join("");
+
+  const authCounts = {};
+  filteredCases.forEach(c=>{authCounts[c.authority]=(authCounts[c.authority]||0)+1;});
+  const authSorted = sortedEntries(authCounts);
+  document.getElementById("authTag").textContent = authSorted.length + " authorities";
+  if(authChart) authChart.destroy();
+  authChart = makeBar("authChart", authSorted.map(x=>x[0]), authSorted.map(x=>x[1]), false);
+
+  const buckets = {"0-7 days":0,"8-14 days":0,"15-30 days":0,"31+ days":0};
+  filteredEvents.forEach(e=>{
+    if(e.tto<=7) buckets["0-7 days"]++;
+    else if(e.tto<=14) buckets["8-14 days"]++;
+    else if(e.tto<=30) buckets["15-30 days"]++;
+    else buckets["31+ days"]++;
+  });
+  document.getElementById("ttoTag").textContent = filteredEvents.length + " events";
+  if(ttoChart) ttoChart.destroy();
+  ttoChart = makeBar("ttoChart", Object.keys(buckets), Object.values(buckets), false);
+
+  const drugCounts = {};
+  filteredCases.forEach(c=>{drugCounts[c.drugClass]=(drugCounts[c.drugClass]||0)+1;});
+  const drugSorted = sortedEntries(drugCounts);
+  document.getElementById("drugTag").textContent = drugSorted.length + " classes";
+  if(drugChart) drugChart.destroy();
+  drugChart = makeBar("drugChart", drugSorted.map(x=>x[0]), drugSorted.map(x=>x[1]), true);
+}
+
+render();
+</script>
+</body>
+</html>
